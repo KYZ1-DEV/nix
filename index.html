@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stix Notes | Premium Markdown Workspace</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        macos: {
+                            bg: '#0F1115',
+                            sidebar: 'rgba(20, 22, 28, 0.4)',
+                            card: 'rgba(28, 31, 38, 0.7)',
+                            border: 'rgba(255, 255, 255, 0.08)',
+                            accent: '#5E6AD2'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'scale-up': 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        scaleUp: { '0%': { opacity: '0', transform: 'scale(0.95) translateY(10px)' }, '100%': { opacity: '1', transform: 'scale(1) translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+        body {
+            background-color: #0F1115;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(94, 106, 210, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(45, 212, 191, 0.1), transparent 25%);
+            background-attachment: fixed;
+            overflow: hidden;
+            user-select: none; /* Prevent accidental text selection outside editor */
+        }
+        
+        /* Custom Scrollbar for MacOS Feel */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: var(--tw-colors-macos-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--tw-colors-macos-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Markdown Preview Styling */
+        .prose {
+            color: #E2E8F0;
+            line-height: 1.6;
+            user-select: text;
+        }
+        .prose h1 { font-size: 1.875rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #F8FAFC; }
+        .prose h2 { font-size: 1.5rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #F8FAFC; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.3rem; }
+        .prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+        .prose p { margin-bottom: 1rem; }
+        .prose a { color: #818CF8; text-decoration: none; transition: color 0.2s; }
+        .prose a:hover { color: #A5B4FC; text-decoration: underline; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose li { margin-bottom: 0.25rem; }
+        .prose blockquote { border-left: 4px solid #5E6AD2; padding-left: 1rem; color: #94A3B8; font-style: italic; background: rgba(94, 106, 210, 0.05); padding-top: 0.5rem; padding-bottom: 0.5rem; border-radius: 0 0.5rem 0.5rem 0; margin-bottom: 1rem;}
+        .prose code { background: rgba(0,0,0,0.3); padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: 'Fira Code', monospace; font-size: 0.875em; color: #38BDF8; }
+        .prose pre { background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.05); }
+        .prose pre code { background: transparent; padding: 0; color: #E2E8F0; }
+        .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        .prose th, .prose td { border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; text-align: left; }
+        .prose th { background: rgba(255,255,255,0.05); }
+        .prose input[type="checkbox"] { margin-right: 0.5rem; accent-color: #5E6AD2; }
+
+        /* Custom Checkbox for Markdown Tasks */
+        .task-list-item { list-style-type: none; margin-left: -1.5rem; display: flex; align-items: flex-start; }
+        
+        /* Mobile Overrides for Note Windows */
+        @media (max-width: 768px) {
+            .note-window {
+                width: 100% !important;
+                height: 100% !important;
+                top: 0 !important;
+                left: 0 !important;
+                transform: none !important;
+                border-radius: 0 !important;
+                border-width: 0 !important;
+                z-index: 1000 !important;
+            }
+            #sidebar {
+                width: 100%;
+                z-index: 50;
+            }
+            .canvas-area { display: none; }
+            body.note-open #sidebar { display: none; }
+            body.note-open .canvas-area { display: block; }
+        }
+
+        /* Resizer handle visual */
+        .resize-handle {
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 15px; height: 15px;
+            cursor: se-resize;
+        }
+        .resize-handle::after {
+            content: '';
+            position: absolute;
+            right: 4px; bottom: 4px;
+            width: 6px; height: 6px;
+            border-right: 2px solid rgba(255,255,255,0.2);
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body class="text-slate-200 antialiased h-screen w-full flex overflow-hidden">
+
+    <aside id="sidebar" class="w-80 h-full macos-sidebar backdrop-blur-xl border-r border-macos-border flex flex-col z-40 transition-all duration-300 bg-[#0F1115]/60">
+        <!-- Sidebar Header -->
+        <div class="p-5 border-b border-macos-border">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                        <i data-lucide="pen-tool" class="w-4 h-4 text-white"></i>
+                    </div>
+                    <h1 class="text-lg font-bold tracking-tight text-white">Stix Notes</h1>
+                </div>
+                <button onclick="stix.createNote()" class="p-2 rounded-md hover:bg-white/10 transition-colors tooltip-trigger" title="New Note (Ctrl+N)">
+                    <i data-lucide="plus" class="w-5 h-5 text-slate-300"></i>
+                </button>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                <input type="text" id="searchInput" placeholder="Search notes..." 
+                    class="w-full bg-black/20 border border-white/5 rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600 text-slate-200">
+            </div>
+        </div>
+
+        <!-- Notes List -->
+        <div id="notesList" class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+            <!-- Notes will be injected here -->
+        </div>
+
+        <!-- Sidebar Footer / Stats -->
+        <div class="p-3 border-t border-macos-border text-xs text-slate-500 flex justify-between items-center bg-black/10">
+            <span id="noteCount">0 Notes</span>
+            <span class="flex items-center gap-1"><i data-lucide="cloud-lightning" class="w-3 h-3 text-emerald-400"></i> Auto-saved</span>
+        </div>
+    </aside>
+
+    <main class="flex-1 relative overflow-hidden canvas-area" id="canvas">
+        <!-- Empty State Background -->
+        <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 opacity-50 pointer-events-none transition-opacity duration-300">
+            <i data-lucide="layers" class="w-24 h-24 mb-4 opacity-20"></i>
+            <h2 class="text-xl font-medium text-slate-400">Workspace is empty</h2>
+            <p class="text-sm mt-2">Press <kbd class="px-2 py-1 bg-black/30 rounded border border-white/10 mx-1">Ctrl + N</kbd> to create a note</p>
+        </div>
+        
+        <!-- Windows will be injected here -->
+        <div id="windowsContainer" class="absolute inset-0 pointer-events-none"></div>
+    </main>
+
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2"></div>
+
+    <script>
+        /**
+         * Stix Notes - Core Application Object
+         * Implements Clean Architecture with Module Pattern
+         */
+        const stix = (function() {
+            // -- State Management --
+            const STORAGE_KEY = 'stix_notes_db_v1';
+            let notes = [];
+            let activeZIndex = 100;
+            let currentSearch = '';
+            
+            // DOM Elements
+            const DOM = {
+                notesList: document.getElementById('notesList'),
+                searchInput: document.getElementById('searchInput'),
+                noteCount: document.getElementById('noteCount'),
+                windowsContainer: document.getElementById('windowsContainer'),
+                emptyState: document.getElementById('emptyState'),
+                toastContainer: document.getElementById('toastContainer')
+            };
+
+            // -- Initialization --
+            function init() {
+                loadData();
+                setupEventListeners();
+                setupShortcuts();
+                lucide.createIcons();
+                renderSidebar();
+                renderOpenWindows();
+                checkEmptyState();
+                
+                // Configure Marked.js options
+                marked.setOptions({
+                    breaks: true, // Convert \n to <br>
+                    gfm: true     // GitHub Flavored Markdown (tables, checklists)
+                });
+            }
+
+            // -- Data Layer (LocalStorage) --
+            function loadData() {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    notes = data ? JSON.parse(data) : [];
+                } catch (e) {
+                    console.error("Error loading notes:", e);
+                    notes = [];
+                }
+            }
+
+            function saveData() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+                renderSidebar(); // Update sidebar (time & order might change)
+            }
+
+            function createNote() {
+                const isMobile = window.innerWidth <= 768;
+                
+                // Calculate position (center of screen, staggered if multiple)
+                const offset = (notes.length % 5) * 20;
+                const width = isMobile ? window.innerWidth : 600;
+                const height = isMobile ? window.innerHeight : 450;
+                const x = isMobile ? 0 : Math.max(0, (window.innerWidth - 320 - width) / 2) + 320 + offset;
+                const y = isMobile ? 0 : Math.max(0, (window.innerHeight - height) / 2) + offset;
+
+                const newNote = {
+                    id: 'note_' + Date.now().toString(36) + Math.random().toString(36).substr(2),
+                    title: '',
+                    content: '',
+                    x: x,
+                    y: y,
+                    w: width,
+                    h: height,
+                    isOpen: true,
+                    zIndex: ++activeZIndex,
+                    lastEdited: Date.now()
+                };
+
+                notes.unshift(newNote); // Add to beginning
+                saveData();
+                
+                if(isMobile) document.body.classList.add('note-open');
+                
+                createWindowElement(newNote);
+                checkEmptyState();
+                showToast("New note created");
+            }
+
+            function updateNote(id, updates) {
+                const note = notes.find(n => n.id === id);
+                if (note) {
+                    Object.assign(note, updates);
+                    note.lastEdited = Date.now();
+                    saveData(); // Real-time auto-save
+                }
+            }
+
+            function deleteNote(id) {
+                notes = notes.filter(n => n.id !== id);
+                saveData();
+                
+                const win = document.getElementById(`window_${id}`);
+                if (win) win.remove();
+                
+                if (window.innerWidth <= 768 && !notes.some(n => n.isOpen)) {
+                    document.body.classList.remove('note-open');
+                }
+                
+                checkEmptyState();
+                showToast("Note deleted");
+            }
+
+            function toggleWindowStatus(id, forceStatus = null) {
+                const note = notes.find(n => n.id === id);
+                if (!note) return;
+
+                note.isOpen = forceStatus !== null ? forceStatus : !note.isOpen;
+                note.zIndex = ++activeZIndex;
+                note.lastEdited = Date.now();
+                saveData();
+
+                const existingWin = document.getElementById(`window_${id}`);
+                
+                if (note.isOpen) {
+                    if (window.innerWidth <= 768) document.body.classList.add('note-open');
+                    if (existingWin) {
+                        bringToFront(id);
+                    } else {
+                        createWindowElement(note);
+                    }
+                } else {
+                    if (existingWin) {
+                        existingWin.classList.add('scale-95', 'opacity-0');
+                        setTimeout(() => existingWin.remove(), 200);
+                    }
+                    if (window.innerWidth <= 768) document.body.classList.remove('note-open');
+                }
+                checkEmptyState();
+            }
+
+            function renderSidebar() {
+                DOM.notesList.innerHTML = '';
+                
+                // Sort by last edited, filter by search
+                const filteredNotes = notes
+                    .filter(n => (n.title || 'Untitled Note').toLowerCase().includes(currentSearch.toLowerCase()) || 
+                                 n.content.toLowerCase().includes(currentSearch.toLowerCase()))
+                    .sort((a, b) => b.lastEdited - a.lastEdited);
+
+                DOM.noteCount.textContent = `${notes.length} Notes`;
+
+                if (filteredNotes.length === 0) {
+                    DOM.notesList.innerHTML = `<div class="text-center p-4 text-slate-500 text-sm">No notes found.</div>`;
+                    return;
+                }
+
+                filteredNotes.forEach(note => {
+                    const title = note.title.trim() || 'Untitled Note';
+                    const preview = note.content.replace(/[#*_>~`]/g, '').trim().substring(0, 40) || 'No additional text...';
+                    const time = formatTime(note.lastEdited);
+                    const isActive = note.isOpen ? 'bg-indigo-500/10 border-indigo-500/30' : 'border-transparent hover:bg-white/5';
+
+                    const el = document.createElement('div');
+                    el.className = `p-3 rounded-lg cursor-pointer border transition-colors duration-200 mb-1 ${isActive}`;
+                    el.onclick = () => toggleWindowStatus(note.id, true);
+                    
+                    el.innerHTML = `
+                        <div class="flex justify-between items-start mb-1">
+                            <h3 class="font-medium text-sm text-slate-200 truncate pr-2">${title}</h3>
+                            <span class="text-[10px] text-slate-500 whitespace-nowrap">${time}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 truncate">${preview}</p>
+                    `;
+                    DOM.notesList.appendChild(el);
+                });
+            }
+
+            function renderOpenWindows() {
+                DOM.windowsContainer.innerHTML = '';
+                notes.filter(n => n.isOpen).forEach(note => createWindowElement(note));
+            }
+
+            function createWindowElement(note) {
+                // Prevent duplicate rendering
+                if(document.getElementById(`window_${note.id}`)) return;
+
+                const win = document.createElement('div');
+                win.id = `window_${note.id}`;
+                win.className = `note-window absolute glass-panel rounded-xl flex flex-col pointer-events-auto animate-scale-up`;
+                
+                // Set initial position and size
+                win.style.width = `${note.w}px`;
+                win.style.height = `${note.h}px`;
+                win.style.transform = `translate(${note.x}px, ${note.y}px)`;
+                win.style.zIndex = note.zIndex;
+                
+                win.dataset.x = note.x;
+                win.dataset.y = note.y;
+
+                // Bring to front on mouse down
+                win.addEventListener('mousedown', () => bringToFront(note.id));
+                win.addEventListener('touchstart', () => bringToFront(note.id), {passive: true});
+
+                // HTML Structure of the Window
+                win.innerHTML = `
+                    <!-- Window Header (MacOS Traffic Lights & Title) -->
+                    <div class="drag-handle h-12 border-b border-macos-border flex items-center px-4 cursor-move bg-white/[0.02] shrink-0 rounded-t-xl group">
+                        <!-- Traffic Lights -->
+                        <div class="flex gap-2 mr-4 z-10">
+                            <button onclick="stix.toggleWindowStatus('${note.id}', false)" class="w-3 h-3 rounded-full bg-red-500/80 hover:bg-red-400 border border-red-600/50 flex items-center justify-center transition-colors">
+                                <i data-lucide="x" class="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100"></i>
+                            </button>
+                            <button onclick="stix.toggleFullScreen('${note.id}')" class="w-3 h-3 rounded-full bg-emerald-500/80 hover:bg-emerald-400 border border-emerald-600/50 flex items-center justify-center transition-colors md:flex hidden">
+                                <i data-lucide="maximize-2" class="w-2 h-2 text-emerald-900 opacity-0 group-hover:opacity-100"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Title Input -->
+                        <input type="text" class="title-input flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-300 text-center mr-8" placeholder="Untitled Note" value="${escapeHTML(note.title)}">
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="flex items-center gap-1 p-2 border-b border-macos-border bg-black/20 shrink-0 overflow-x-auto no-scrollbar">
+                        ${generateToolbarButtons(note.id)}
+                        <div class="flex-1"></div>
+                        <button class="toggle-preview-btn p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-indigo-400 transition-colors tooltip-trigger" title="Toggle Edit/Preview">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="stix.deleteNote('${note.id}')" class="p-1.5 rounded hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors tooltip-trigger" title="Delete Note">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Editor / Preview Area -->
+                    <div class="flex-1 relative overflow-hidden flex flex-col sm:flex-row bg-[#0F1115]/50 rounded-b-xl">
+                        <!-- Editor Pane -->
+                        <textarea class="editor-pane flex-1 w-full h-full p-5 bg-transparent border-none outline-none resize-none text-slate-300 font-mono text-sm leading-relaxed custom-scrollbar placeholder-slate-600" placeholder="Start typing in Markdown...">${escapeHTML(note.content)}</textarea>
+                        
+                        <!-- Divider (visible on split view) -->
+                        <div class="w-[1px] bg-macos-border hidden sm:block preview-divider"></div>
+                        
+                        <!-- Preview Pane -->
+                        <div class="preview-pane flex-1 w-full h-full p-5 overflow-y-auto custom-scrollbar prose hidden sm:block bg-black/10"></div>
+                    </div>
+                    
+                    <!-- Resize Handle -->
+                    <div class="resize-handle md:block hidden"></div>
+                `;
+
+                DOM.windowsContainer.appendChild(win);
+                lucide.createIcons({ root: win });
+
+                // Setup internal window logic
+                setupWindowLogic(win, note);
+                
+                // Initialize InteractJS for Drag & Resize
+                if(window.innerWidth > 768) {
+                    setupInteractJS(win, note.id);
+                }
+            }
+
+            function setupWindowLogic(win, note) {
+                const titleInput = win.querySelector('.title-input');
+                const textarea = win.querySelector('.editor-pane');
+                const preview = win.querySelector('.preview-pane');
+                const toggleBtn = win.querySelector('.toggle-preview-btn');
+                let isPreviewMode = false; // For mobile/small screens toggle
+
+                // Markdown Renderer function
+                const updatePreview = () => {
+                    const rawHtml = marked.parse(textarea.value);
+                    const cleanHtml = DOMPurify.sanitize(rawHtml);
+                    
+                    // Add styling to task lists generated by marked
+                    const styledHtml = cleanHtml.replace(/<li><input disabled="" type="checkbox">/g, '<li class="task-list-item"><input disabled="" type="checkbox">')
+                                                .replace(/<li><input checked="" disabled="" type="checkbox">/g, '<li class="task-list-item"><input checked="" disabled="" type="checkbox">');
+                    preview.innerHTML = styledHtml;
+                };
+
+                // Initial render
+                updatePreview();
+
+                // Auto-save & Live Preview Events
+                titleInput.addEventListener('input', () => {
+                    updateNote(note.id, { title: titleInput.value });
+                });
+
+                textarea.addEventListener('input', () => {
+                    updatePreview();
+                    updateNote(note.id, { content: textarea.value });
+                });
+
+                // Handle Tab key in textarea
+                textarea.addEventListener('keydown', function(e) {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        const start = this.selectionStart;
+                        const end = this.selectionEnd;
+                        this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+                        this.selectionStart = this.selectionEnd = start + 4;
+                        updatePreview();
+                        updateNote(note.id, { content: this.value });
+                    }
+                });
+
+                // Toggle Edit/Preview (Mobile logic)
+                toggleBtn.addEventListener('click', () => {
+                    isPreviewMode = !isPreviewMode;
+                    if (isPreviewMode) {
+                        textarea.classList.add('hidden');
+                        preview.classList.remove('hidden');
+                        preview.classList.remove('sm:block'); // Force show on mobile
+                        toggleBtn.innerHTML = '<i data-lucide="edit-3" class="w-4 h-4"></i>';
+                    } else {
+                        textarea.classList.remove('hidden');
+                        preview.classList.add('hidden');
+                        preview.classList.add('sm:block'); // Revert to responsive behavior
+                        toggleBtn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+                    }
+                    lucide.createIcons({ root: toggleBtn });
+                });
+
+                // Toolbar Actions
+                const tBtns = win.querySelectorAll('.md-btn');
+                tBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const prefix = btn.dataset.prefix;
+                        const suffix = btn.dataset.suffix || '';
+                        insertMarkdown(textarea, prefix, suffix);
+                        updatePreview();
+                        updateNote(note.id, { content: textarea.value });
+                    });
+                });
+            }
+
+            function setupInteractJS(element, id) {
+                interact(element)
+                    .draggable({
+                        allowFrom: '.drag-handle', // Only drag from header
+                        ignoreFrom: '.title-input, button', // Don't drag when interacting with buttons/inputs
+                        modifiers: [
+                            interact.modifiers.restrictRect({
+                                restriction: '#canvas',
+                                endOnly: false
+                            })
+                        ],
+                        listeners: {
+                            move(event) {
+                                const target = event.target;
+                                // keep the dragged position in the data-x/data-y attributes
+                                const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                                const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+                                // translate the element
+                                target.style.transform = `translate(${x}px, ${y}px)`;
+
+                                // update the posiion attributes
+                                target.setAttribute('data-x', x);
+                                target.setAttribute('data-y', y);
+                            },
+                            end(event) {
+                                const x = parseFloat(event.target.getAttribute('data-x'));
+                                const y = parseFloat(event.target.getAttribute('data-y'));
+                                updateNote(id, { x, y });
+                            }
+                        }
+                    })
+                    .resizable({
+                        edges: { left: false, right: '.resize-handle', bottom: '.resize-handle', top: false },
+                        modifiers: [
+                            interact.modifiers.restrictSize({
+                                min: { width: 300, height: 200 }
+                            }),
+                            interact.modifiers.restrictRect({
+                                restriction: '#canvas'
+                            })
+                        ],
+                        listeners: {
+                            move: function (event) {
+                                let { x, y } = event.target.dataset;
+
+                                x = (parseFloat(x) || 0) + event.deltaRect.left;
+                                y = (parseFloat(y) || 0) + event.deltaRect.top;
+
+                                Object.assign(event.target.style, {
+                                    width: `${event.rect.width}px`,
+                                    height: `${event.rect.height}px`,
+                                    transform: `translate(${x}px, ${y}px)`
+                                });
+
+                                Object.assign(event.target.dataset, { x, y });
+                            },
+                            end(event) {
+                                updateNote(id, {
+                                    w: parseFloat(event.target.style.width),
+                                    h: parseFloat(event.target.style.height)
+                                });
+                            }
+                        }
+                    });
+            }
+
+            function bringToFront(id) {
+                const note = notes.find(n => n.id === id);
+                const win = document.getElementById(`window_${id}`);
+                if (note && win && note.zIndex !== activeZIndex) {
+                    activeZIndex++;
+                    note.zIndex = activeZIndex;
+                    win.style.zIndex = activeZIndex;
+                    saveData();
+                }
+            }
+
+            function toggleFullScreen(id) {
+                const win = document.getElementById(`window_${id}`);
+                if (!win) return;
+                
+                const isMax = win.dataset.maximized === 'true';
+                
+                if (isMax) {
+                    // Restore
+                    const n = notes.find(n => n.id === id);
+                    win.style.width = `${n.w}px`;
+                    win.style.height = `${n.h}px`;
+                    win.style.transform = `translate(${n.x}px, ${n.y}px)`;
+                    win.style.borderRadius = '';
+                    win.dataset.maximized = 'false';
+                    // Re-enable interact
+                    interact(win).draggable(true).resizable(true);
+                } else {
+                    // Maximize
+                    win.style.width = `100%`;
+                    win.style.height = `100%`;
+                    win.style.transform = `translate(0px, 0px)`;
+                    win.style.borderRadius = '0';
+                    win.dataset.maximized = 'true';
+                    // Disable interact temporarily
+                    interact(win).draggable(false).resizable(false);
+                }
+            }
+
+            function insertMarkdown(textarea, prefix, suffix) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const selection = text.substring(start, end);
+                
+                const replace = prefix + selection + suffix;
+                textarea.value = text.substring(0, start) + replace + text.substring(end);
+                
+                textarea.focus();
+                textarea.selectionStart = start + prefix.length;
+                textarea.selectionEnd = end + prefix.length + selection.length;
+            }
+
+            function generateToolbarButtons() {
+                const tools = [
+                    { icon: 'bold', prefix: '**', suffix: '**', title: 'Bold' },
+                    { icon: 'italic', prefix: '_', suffix: '_', title: 'Italic' },
+                    { icon: 'heading-1', prefix: '# ', suffix: '', title: 'Heading 1' },
+                    { icon: 'heading-2', prefix: '## ', suffix: '', title: 'Heading 2' },
+                    { icon: 'quote', prefix: '> ', suffix: '', title: 'Quote' },
+                    { icon: 'code', prefix: '`', suffix: '`', title: 'Inline Code' },
+                    { icon: 'square-code', prefix: '\n```\n', suffix: '\n```\n', title: 'Code Block' },
+                    { icon: 'list', prefix: '- ', suffix: '', title: 'Bullet List' },
+                    { icon: 'check-square', prefix: '- [ ] ', suffix: '', title: 'Task List' },
+                ];
+
+                return tools.map(t => `
+                    <button class="md-btn p-1.5 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors tooltip-trigger" 
+                            title="${t.title}" data-prefix="${t.prefix}" data-suffix="${t.suffix}">
+                        <i data-lucide="${t.icon}" class="w-4 h-4"></i>
+                    </button>
+                `).join('');
+            }
+
+            function checkEmptyState() {
+                const hasOpenNotes = notes.some(n => n.isOpen);
+                DOM.emptyState.style.opacity = hasOpenNotes ? '0' : '1';
+                DOM.windowsContainer.style.pointerEvents = hasOpenNotes ? 'auto' : 'none';
+            }
+
+            function showToast(message) {
+                const toast = document.createElement('div');
+                toast.className = 'bg-white/10 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-lg shadow-lg text-sm animate-scale-up';
+                toast.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> ${message}</div>`;
+                DOM.toastContainer.appendChild(toast);
+                lucide.createIcons({ root: toast });
+                
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => toast.remove(), 300);
+                }, 2000);
+            }
+
+            function formatTime(timestamp) {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                if (diff < 60000) return 'Just now';
+                if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+                if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+
+            function escapeHTML(str) {
+                return str.replace(/[&<>'"]/g, 
+                    tag => ({
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        "'": '&#39;',
+                        '"': '&quot;'
+                    }[tag] || tag)
+                );
+            }
+
+            function setupEventListeners() {
+                // Search functionality
+                DOM.searchInput.addEventListener('input', (e) => {
+                    currentSearch = e.target.value;
+                    renderSidebar();
+                });
+
+                // Handle window resize for mobile adjustments
+                window.addEventListener('resize', () => {
+                    if(window.innerWidth <= 768) {
+                        const hasOpen = notes.some(n => n.isOpen);
+                        if(hasOpen) document.body.classList.add('note-open');
+                    } else {
+                        document.body.classList.remove('note-open');
+                    }
+                });
+            }
+
+            function setupShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl + N : New Note
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                        e.preventDefault();
+                        createNote();
+                    }
+                    // Ctrl + S : Save (Visual feedback only, as it's auto-saved)
+                    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                        e.preventDefault();
+                        showToast("Progress saved securely");
+                    }
+                    // Esc : Close active top window
+                    if (e.key === 'Escape') {
+                        const openNotes = notes.filter(n => n.isOpen).sort((a,b) => b.zIndex - a.zIndex);
+                        if(openNotes.length > 0) {
+                            // Find active element, if inside a note, blur it. If body, close top note.
+                            if(document.activeElement.tagName !== 'BODY') {
+                                document.activeElement.blur();
+                            } else {
+                                toggleWindowStatus(openNotes[0].id, false);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Expose public methods
+            return {
+                init,
+                createNote,
+                updateNote,
+                deleteNote,
+                toggleWindowStatus,
+                toggleFullScreen
+            };
+        })();
+
+        // Boot App
+        document.addEventListener('DOMContentLoaded', stix.init);
+    </script>
+</body>
+</html>
